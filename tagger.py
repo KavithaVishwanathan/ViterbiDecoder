@@ -2,6 +2,31 @@
 import numpy as np
 from collections import defaultdict
 
+def trainWSJCorpus():
+	#read the training pos file
+	posfile = open("WSJ_02-21.pos", 'r')
+	prevpos = "start"
+	wordcout_dict = defaultdict(int)
+	tags = {}
+
+	for line in posfile:
+		wordpos = line.split("\t")
+		if len(wordpos) > 1:
+			word = wordpos[0]
+			currpos = wordpos[1].strip("\n")
+			tags.setdefault(word,[]).append(currpos)
+			StateCount(currpos,word,prevpos, wordcout_dict)
+			prevpos = currpos
+		else:
+			StateCount("end","",prevpos, wordcout_dict)
+			prevpos = "start"
+	
+	#to remove duplicates from list
+	tag_dict = {}
+	for k,v in tags.items():
+		tag_dict[k] = list(set(v))
+	return wordcout_dict, tag_dict
+	
 def StateCount(currpos,word,prevpos, wordcout_dict):
 	if prevpos == "start":
 		key1 = "STATE START"
@@ -14,43 +39,12 @@ def StateCount(currpos,word,prevpos, wordcout_dict):
 	key4 = prevpos + " to " + currpos
 	wordcout_dict[key4] += 1
 
-def trainWSJCorpus():
-	#read the training pos file
-	posfile = open("WSJ_02-21.pos", 'r')
-	prevpos = "start"
-	wordcout_dict = defaultdict(int)
-	for line in posfile:
-		wordpos = line.split("\t")
-		if len(wordpos) > 1:
-			word = wordpos[0]
-			currpos = wordpos[1].strip("\n")
-			StateCount(currpos,word,prevpos, wordcout_dict)
-			prevpos = currpos
-		else:
-			StateCount("end","",prevpos, wordcout_dict)
-			prevpos = "start"
-	return wordcout_dict
 
-def FindTags():
-	posfile = open("WSJ_02-21.pos", 'r')
-	tags = {}
-	for line in posfile:
-		wordpos = line.split("\t")
-		if len(wordpos) > 1:
-			word = wordpos[0]
-			tag = wordpos[1].strip("\n")
-			tags.setdefault(word,[]).append(tag)
-	#to remove duplicates from list
-	tag_dict = {}
-	for k,v in tags.items():
-		tag_dict[k] = list(set(v))
-	return tag_dict
-
-def FindStates(tokenList):
-	tag_dict = FindTags()
+def FindStates(tokenList, tag_dict):
 	stateList = []
 	for token in tokenList:
-		stateList.append(tag_dict[token])
+		if token in tag_dict:
+			stateList.append(tag_dict[token])
 	return stateList
 
 def obs():
@@ -66,11 +60,13 @@ def obs():
 	return finallist
 
 def viterbi():
+	wordcout_dict, tag_dict = trainWSJCorpus()
 	obslist = obs()
 	for tokenList in obslist:
-		stateList = FindStates(tokenList)
-		#np.zeros((len(stateList)),len(tokenList))
-	print  stateList
+		stateList = FindStates(tokenList, tag_dict)
+		matrix = np.zeros(((len(stateList)),len(tokenList)))
+		print matrix
+	#print  stateList
 
 viterbi()	
 
