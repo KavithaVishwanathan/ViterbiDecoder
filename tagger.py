@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import pudb; pu.db
 import numpy as np
 from collections import defaultdict
 from itertools import chain
@@ -21,8 +22,7 @@ def trainWSJCorpus():
 			prevpos = currpos
 		else:
 			StateCount("end","",prevpos, wordcout_dict)
-			prevpos = "start"
-
+			prevpos = "START"
 	#to remove duplicates from list
 	tag_dict = {}
 	for k,v in tags.items():
@@ -32,7 +32,9 @@ def trainWSJCorpus():
 def StateCount(currpos,word,prevpos, wordcout_dict):
 	if prevpos == "start":
 		key1 = "STATE START"
+		key5 = "STATE END"
 		wordcout_dict[key1] += 1
+		wordcout_dict[key5] += 1
 	if currpos != "end": 
 		key2 = "STATE " + currpos
 		wordcout_dict[key2] += 1
@@ -67,6 +69,31 @@ def obs():
 			lineList = ["START"]
 	return finallist
 
+def tran_prob(wordcout_dict,stateList,k,j):
+	num  = wordcout_dict[stateList[k] + " to " + stateList[j]]
+	#print stateList[k] + " to " + stateList[j] + " " + str(num)
+	den = wordcout_dict["STATE " + stateList[k]]
+	#print "STATE " + stateList[k] + " "  + str(den)
+	# if  den == 0:
+	# 	#print "HELLLL" + "0"
+	# 	return 0
+	# else:
+	#print float(num)/float(den)
+	return float(num)/float(den) 
+	
+
+def emit_prob(wordcout_dict, stateList,tokenList,j,i):
+	num  = wordcout_dict[stateList[j] + " emit " + tokenList[i]]
+	# print stateList[j] + " emit " + tokenList[i] + " " + str(num)
+	den = wordcout_dict["STATE " + stateList[j]]
+	# print "STATE " + stateList[j] + " " + str(den)
+	# if den == 0 :
+	# 	print "HELLLL" + "0"
+	# 	return 0
+	# else:
+	#print float(num)/float(den) 
+	return float(num)/float(den) 
+
 def viterbi():
 	wordcout_dict, tag_dict = trainWSJCorpus()
 	obslist = obs()
@@ -87,17 +114,21 @@ def viterbi():
 		# 				matrix[j,t+1] = score
 		# 				best_parent[j] = i
 
-		matrix = np.zeros(((len(stateList)),len(tokenList)))
-		matrix[0,0] = 1
-		print matrix.shape
+		matrix = np.zeros(((len(stateList)),len(tokenList)),dtype=float)
+		matrix[0,0] = 1.0
+		states = []
 		for i in xrange(1,len(tokenList)):
 			for j in xrange(1,len(stateList)):
-				(prob, state) = max((matrix[i-1,k],k) for k in xrange(0,len(stateList)))
-				matrix[i,j] = prob
+				(prob, state) = max(((matrix[k,i-1] * tran_prob(wordcout_dict,stateList,k,j) * emit_prob(wordcout_dict,stateList,tokenList,j,i)),k) for k in xrange(0,len(stateList)))
+				matrix[j,i] = float(prob)
+				states.append(state)
 		print matrix
 		print matrix.shape
 
-	#print  stateList
+		for state in states:
+			print state
 
+	#print  stateList
+	
 viterbi()	
 
