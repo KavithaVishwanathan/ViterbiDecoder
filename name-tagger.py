@@ -34,16 +34,18 @@ def readNameFile():
 	names = []
 	for line in namefile:
 		name = line.strip('\n').split()
-		names.append(name[0].capitalize())
+		names.append(name[0].upper())
 	return names
 
 def readLocationFile():
-	locationfile = open("cities.csv", 'r')
+	locationfile = open("locations.txt", 'r')
 	locations = []
 	for line in locationfile:
-		location = line.strip("\n").replace("'",'').replace("\r","").split(" ")
+		location = line.strip("\n").replace("\t",'').replace("\r","").split(" ")
 		locations.extend(location)
-	return list(set(locations))	
+	locations = list(set(locations))
+	locations = [location.upper() for location in locations]
+	return locations
 
 def readCompanyFile():
 	companyfile = open("companylist.csv", 'r')
@@ -51,7 +53,9 @@ def readCompanyFile():
 	for line in companyfile:
 		company = line.strip('\n').replace('"','').split(',')
 		companies.extend(company)
-	return list(set(companies))
+	companies = list(set(companies))
+	companies = [company.upper() for company in companies]
+	return companies
 
 def featureBuilder(featurefile, outputfile):
 	names = readNameFile()
@@ -82,9 +86,11 @@ def featureBuilder(featurefile, outputfile):
 				prevPrevword = findPrevPrevWord(lines[i-2])
 				nextword = findNextWord(lines[i+1])
 				wordCaps = isWordCaps(lines[i])
+				prevNPhrase = findPrevNPhrase(lines[i-1])
+				nextNPhrase = findNextNPhrase(lines[i+1])
 				#conjunction = isConjunction(lines[i])
 				noAlpha = isNoAlpha(lines[i])
-				#company = isCompany(lines[i],companies)
+				company = isCompany(lines[i],companies)
 				if (i+2) < len(lines):
 					nextNextWord = findNextNextWord(lines[i+2])
 
@@ -94,8 +100,8 @@ def featureBuilder(featurefile, outputfile):
 					+ "isPrevComma=" + prevComma + "\t" + "isPerson=" + person + "\t" + "prevtag=" + prevtag + "\t"
 					+ "currtag=" + lines[i][1] + "\t" + "nexttag=" + nexttag + "\t" + "prevword=" + prevword + "\t"
 					+ "currword=" + lines[i][0] + "\t" + "nextword=" + nextword + "\t" + "prevtoPrevWord=" + prevPrevword + "\t"
-					+ "isNoAlpha=" + noAlpha + "\t" #+ "isCompany=" + company + "\t" 
-					+ "isLocation=" + location + "\t"
+					+ "isNoAlpha=" + noAlpha + "\t" + "isCompany=" + company + "\t" + "isLocation=" + location + "\t"
+					+ "prevNPhrase=" + prevNPhrase + "\t" + "currNPhrase=" + lines[i][2] + "\t" + "nextNPhrase=" + nextNPhrase + "\t"
 					+ lines[i][3] + "\n")
 				# "isPrevWordAtorBy=" + prevWordAtorBy + "\t" + "isLocation=" + location + "\t" "nextNextWord=" + nextNextWord + "\t"
 #def checkFeature(prevLine, currLine, nextLine,names):
@@ -149,6 +155,18 @@ def findNextNextWord(nextNextLine):
 	else:
 		return nextNextLine[0]
 
+def findPrevNPhrase(prevLine):
+	if len(prevLine) == 1:
+		return "@@"
+	else:
+		return prevLine[2]
+
+def findNextNPhrase(nextLine):
+	if len(nextLine) == 1:
+		return "@@"
+	else:
+		return nextLine[2]
+
 def isPrevComma(prevLine):
 	if prevLine[0] == ",":
 		return "true"
@@ -156,19 +174,19 @@ def isPrevComma(prevLine):
 		return "false"	
 
 def isPerson(currLine,names):
-	if currLine[0] in names:
+	if currLine[0].upper() in names:
 		return "true"
 	else:
 		return "false"
 
 def isLocation(currLine,locations):
-	if currLine[0] in locations:
+	if currLine[0].upper() in locations:
 		return "true"
 	else:
 		return "false"	
 
 def isCompany(currLine,companies):
-	if currLine[0] in companies:
+	if currLine[0].upper() in companies:
 		return "true"
 	else:
 		return "false"	
@@ -199,6 +217,7 @@ def isNoAlpha(currLine):
 
 
 #pass the input file name and the output filename
-featureBuilder("CONLL_train.pos-chunk-name", "train.feature")
-featureBuilder("CONLL_dev.pos-chunk","dev.feature")
+#featureBuilder("CONLL_train.pos-chunk-name", "train.feature")
+#featureBuilder("CONLL_dev.pos-chunk","dev.feature")
+featureBuilder("CONLL_test.pos-chunk","test.feature")
 #readLocationFile()
